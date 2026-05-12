@@ -4,6 +4,7 @@ const dotenv = require("dotenv") ;
 const { connectDB } = require("./config/db.js") ;
 const ingestRoutes = require("./routes/ingestRoutes.js") ;
 const chatRoutes = require("./routes/chatRoutes.js") ;
+const historyRoutes = require("./routes/historyRoutes.js") ;
 
 dotenv.config() ;
 connectDB() ;
@@ -21,6 +22,7 @@ app.get("/health" , (req , res) => {
 
 app.use("/api/ingest" , ingestRoutes) ;
 app.use("/api/chat" , chatRoutes) ;
+app.use("/api/history" , historyRoutes) ;
 
 app.listen(port , () => {
     console.log(`server running`) ;

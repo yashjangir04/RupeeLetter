@@ -1,88 +1,90 @@
-const { ChatGroq } = require("@langchain/groq") ;
-const { HfInference } = require("@huggingface/inference") ;
-const ChatModel = require("../models/Chat.js") ;
-const Article = require("../models/Article.js") ;
+const { ChatGroq } = require("@langchain/groq");
+const { HfInference } = require("@huggingface/inference");
+const ChatModel = require("../models/Chat.js");
+const Article = require("../models/Article.js");
 
-const cosineSimilarity = (vecA , vecB) => {
-    let dotProduct = 0 ;
-    let normA = 0 ;
-    let normB = 0 ;
-    for(let i = 0 ; i < vecA.length ; i++) {
-        dotProduct += vecA[i] * vecB[i] ;
-        normA += vecA[i] * vecA[i] ;
-        normB += vecB[i] * vecB[i] ;
+const cosineSimilarity = (vecA, vecB) => {
+    let dotProduct = 0;
+    let normA = 0;
+    let normB = 0;
+    for (let i = 0; i < vecA.length; i++) {
+        dotProduct += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
     }
-    if(normA === 0 || normB === 0) return 0 ;
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB)) ;
-} ;
+    if (normA === 0 || normB === 0) return 0;
+    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+};
 
-const chatWithNews = async (req , res) => {
+const chatWithNews = async (req, res) => {
     try {
-        const { message } = req.body ;
-        if(!message) {
-            return res.status(400).json({ success: false , error: "message is required" }) ;
+        const { message } = req.body;
+        if (!message) {
+            return res.status(400).json({ success: false, error: "message is required" });
         }
 
-        const hf = new HfInference(process.env.HUGGINGFACE_API_KEY) ;
+        const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
         const queryVector = await hf.featureExtraction({
-            model: "sentence-transformers/all-MiniLM-L6-v2" ,
+            model: "sentence-transformers/all-MiniLM-L6-v2",
             inputs: message
-        }) ;
+        });
 
-        const allArticles = await Article.find({}) ;
-        
+        const allArticles = await Article.find({});
+
         const scoredArticles = allArticles.map(article => {
-            const score = cosineSimilarity(queryVector , article.embedding) ;
-            return { ...article.toObject() , score } ;
-        }) ;
+            const score = cosineSimilarity(queryVector, article.embedding);
+            return { ...article.toObject(), score };
+        });
 
-        scoredArticles.sort((a , b) => b.score - a.score) ;
-        const topContexts = scoredArticles.slice(0 , 3) ;
+        scoredArticles.sort((a, b) => b.score - a.score);
+        const topContexts = scoredArticles.slice(0, 3);
 
-        let contextText = "" ;
-        let sources = [] ;
+        let contextText = "";
+        let sources = [];
 
-        for(let i = 0 ; i < topContexts.length ; i++) {
-            contextText += `Chunk ${i + 1}:\n${topContexts[i].text}\n\n` ;
-            sources.push(topContexts[i].metadata) ;
+        for (let i = 0; i < topContexts.length; i++) {
+            contextText += `Chunk ${i + 1}:\n${topContexts[i].text}\n\n`;
+            sources.push(topContexts[i].metadata);
         }
 
-const llm = new ChatGroq({
-            apiKey: process.env.GROQ_API_KEY ,
+        const llm = new ChatGroq({
+            apiKey: process.env.GROQ_API_KEY,
             // UPDATE THIS LINE:
-            model: "llama-3.1-8b-instant" 
-        }) ;
+            model: "llama-3.1-8b-instant"
+        });
 
         const prompt = `
-            You are an AI News Assistant. Answer the user's question strictly using ONLY the context provided below.
+            System: You are an AI News Assistant. Answer the user's question strictly using ONLY the context provided below.
             If the answer is not contained in the context, say "I cannot answer this based on the provided news data."
-            
-            Context:
+
+            ---
+            CONTEXT:
             ${contextText}
-            
-            User Question: ${message}
+            ---
+
+            USER QUESTION: ${message}
         ` ;
 
-        const result = await llm.invoke(prompt) ;
-        const responseText = result.content ;
-        
+        const result = await llm.invoke(prompt);
+        const responseText = result.content;
+
         const newChat = new ChatModel({
-            userMessage: message ,
-            aiResponse: responseText ,
+            userMessage: message,
+            aiResponse: responseText,
             sources: sources
-        }) ;
-        await newChat.save() ;
+        });
+        await newChat.save();
 
-        res.status(200).json({ 
-            success: true , 
-            answer: responseText ,
+        res.status(200).json({
+            success: true,
+            answer: responseText,
             sources: sources
-        }) ;
+        });
     }
-    catch(err) {
-        console.log(err) ;
-        res.status(500).json({ success: false , error: err.message }) ;
+    catch (err) {
+        console.log(err);
+        res.status(500).json({ success: false, error: err.message });
     }
-} ;
+};
 
-module.exports = { chatWithNews } ;
+module.exports = { chatWithNews };
