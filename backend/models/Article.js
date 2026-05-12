@@ -1,4 +1,4 @@
-import mongoose from "mongoose" ;
+const mongoose = require("mongoose") ;
 
 const articleSchema = new mongoose.Schema({
     text: {
@@ -15,4 +15,4 @@ const articleSchema = new mongoose.Schema({
     }
 } , { timestamps: true }) ;
 
-export default mongoose.model("Article" , articleSchema) ;
+module.exports = mongoose.model("Article" , articleSchema) ;

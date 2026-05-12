@@ -1,8 +1,8 @@
-import express from "express" ;
-import { ingestData } from "../controllers/ingestController.js" ;
+const express = require("express") ;
+const { ingestData } = require("../controllers/ingestController.js") ;
 
 const router = express.Router() ;
 
 router.post("/" , ingestData) ;
 
-export default router ;
+module.exports = router ;

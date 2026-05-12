@@ -1,8 +1,9 @@
-import express from "express" ;
-import cors from "cors" ;
-import dotenv from "dotenv" ;
-import { connectDB } from "./config/db.js" ;
-import ingestRoutes from "./routes/ingestRoutes.js" ;
+const express = require("express") ;
+const cors = require("cors") ;
+const dotenv = require("dotenv") ;
+const { connectDB } = require("./config/db.js") ;
+const ingestRoutes = require("./routes/ingestRoutes.js") ;
+const chatRoutes = require("./routes/chatRoutes.js") ;
 
 dotenv.config() ;
 connectDB() ;
@@ -14,17 +15,13 @@ app.use(cors()) ;
 app.use(express.json()) ;
 app.use(express.urlencoded({ extended: true })) ;
 
-app.use("/api/ingest" , ingestRoutes) ;
-
-
-
-
 app.get("/health" , (req , res) => {
-    res.status(200).send({
-        status : "active"
-    }) ;
-})
+    res.status(200).json({ status: "active" }) ;
+}) ;
 
-app.listen(PORT , () => {
-    console.log(`Server running on PORT:{${PORT}}`) ;
-})
+app.use("/api/ingest" , ingestRoutes) ;
+app.use("/api/chat" , chatRoutes) ;
+
+app.listen(port , () => {
+    console.log(`server running`) ;
+}) ;
