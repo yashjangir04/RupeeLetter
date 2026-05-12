@@ -1,13 +1,23 @@
-const express = require("express") ;
+import express from "express" ;
+import cors from "cors" ;
+import dotenv from "dotenv" ;
+import { connectDB } from "./config/db.js" ;
+import ingestRoutes from "./routes/ingestRoutes.js" ;
+
+dotenv.config() ;
+connectDB() ;
+
 const app = express() ;
-const env = require("dotenv") ;
+const port = process.env.PORT || 5000 ;
 
-env.config() ;
-const PORT = process.env.PORT ;
+app.use(cors()) ;
+app.use(express.json()) ;
+app.use(express.urlencoded({ extended: true })) ;
 
-app.get("/" , (req , res) => {
-    res.send("Hello World :)") ;
-})
+app.use("/api/ingest" , ingestRoutes) ;
+
+
+
 
 app.get("/health" , (req , res) => {
     res.status(200).send({
