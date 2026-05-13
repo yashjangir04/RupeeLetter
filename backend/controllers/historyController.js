@@ -1,20 +1,35 @@
 const Chat = require("../models/Chat.js") ;
 
-const getHistory = async (req , res) => {
+const getHistory = async (req, res) => {
     try {
-        // We sort by createdAt: -1 to show the newest chats at the top
-        // limit = 20 so the sidebar doesn't get overwhelmed
-        const history = await Chat.find().sort({ createdAt: -1 }).limit(20) ;
-        
-        res.status(200).json({ 
-            success: true , 
-            data: history 
-        }) ;
-    }
-    catch(err) {
-        console.error("Error fetching history:" , err) ;
-        res.status(500).json({ success: false , error: err.message }) ;
-    }
-} ;
+        // we use MongoDB Aggregation to group messages by sessionId
+        const sessions = await Chat.aggregate([
+            { $sort: { createdAt: 1 } }, // sort in ascending to find the first msg of the session
+            {
+                $group: {
+                    _id: "$sessionId",
+                    userMessage: { $first: "$userMessage" }, // first message as the sidebar "Title"
+                    createdAt: { $first: "$createdAt" }
+                }
+            },
+            { $sort: { createdAt: -1 } } // sort in descending so newest sessions are at the top of the sidebar
+        ]);
 
-module.exports = { getHistory } ;
+        res.status(200).json({ success: true, data: sessions });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+const getSessionChats = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        // fetch all messages with this ID, sorted chronologically
+        const chats = await Chat.find({ sessionId }).sort({ createdAt: 1 });
+        res.status(200).json({ success: true, data: chats });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
+
+module.exports = { getHistory, getSessionChats };

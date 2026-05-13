@@ -18,7 +18,7 @@ const cosineSimilarity = (vecA, vecB) => {
 
 const chatWithNews = async (req, res) => {
     try {
-        const { message } = req.body;
+        const { message, sessionId } = req.body;
         if (!message) {
             return res.status(400).json({ success: false, error: "message is required" });
         }
@@ -49,7 +49,6 @@ const chatWithNews = async (req, res) => {
 
         const llm = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY,
-            // UPDATE THIS LINE:
             model: "llama-3.1-8b-instant"
         });
 
@@ -69,6 +68,7 @@ const chatWithNews = async (req, res) => {
         const responseText = result.content;
 
         const newChat = new ChatModel({
+            sessionId: sessionId || Date.now().toString(),
             userMessage: message,
             aiResponse: responseText,
             sources: sources

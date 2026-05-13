@@ -1,8 +1,8 @@
-const express = require("express") ;
-const { getHistory } = require("../controllers/historyController.js") ;
+const express = require('express');
+const { getHistory, getSessionChats } = require('../controllers/historyController');
+const router = express.Router();
 
-const router = express.Router() ;
+router.get('/', getHistory);
+router.get('/:sessionId', getSessionChats);
 
-router.get("/" , getHistory) ;
-
-module.exports = router ;
+module.exports = router;
