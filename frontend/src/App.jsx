@@ -11,6 +11,10 @@ import {
   Moon,
 } from "lucide-react";
 
+/**
+ * Main Application Layout
+ * Manages global state including routing (chat vs. analyze), session history, and UI theme.
+ */
 function App() {
   const [view, setView] = useState("chat");
   const [history, setHistory] = useState([]);
@@ -68,8 +72,7 @@ function App() {
         transition: "background-color 0.3s ease",
       }}
     >
-      
-      {/* SIDEBAR */}
+      {/* Sidebar Navigation */}
       <div
         style={{
           width: "280px",
@@ -84,6 +87,7 @@ function App() {
           transition: "background-color 0.3s ease, border-color 0.3s ease",
         }}
       >
+        {/* Branding */}
         <div
           style={{
             padding: "24px 20px",
@@ -96,7 +100,7 @@ function App() {
         >
           <div
             style={{
-              backgroundColor: "white",
+              backgroundColor: isDarkMode ? "transparent" : "white",
               padding: "4px",
               borderRadius: "8px",
               display: "flex",
@@ -106,7 +110,7 @@ function App() {
             }}
           >
             <img
-              src="/logo.jpg"
+              src={isDarkMode ? "/logo_dark.png" : "/logo.jpg"} 
               alt="RupeeLetter"
               style={{ height: "32px", width: "auto", objectFit: "contain" }}
             />
@@ -123,7 +127,7 @@ function App() {
           </span>
         </div>
 
-        {/* NEW CHAT BUTTON */}
+        {/* Primary Action */}
         <div style={{ padding: "20px 20px 10px 20px" }}>
           <button
             onClick={handleNewChat}
@@ -157,6 +161,7 @@ function App() {
           </button>
         </div>
 
+        {/* View Routing */}
         <nav
           style={{
             padding: "10px 20px",
@@ -210,7 +215,7 @@ function App() {
           </div>
         </nav>
 
-        {/* HISTORY */}
+        {/* Session History Log */}
         <div
           style={{
             flex: 1,
@@ -252,8 +257,8 @@ function App() {
                   transition: "all 0.2s ease",
                 }}
                 onClick={() => {
-                  setSessionId(item._id); // updates the active session
-                  setView("chat");        // flips back to chat if they were in Analyze view
+                  setSessionId(item._id);
+                  setView("chat");       
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = theme.surface;
@@ -270,6 +275,7 @@ function App() {
           </div>
         </div>
 
+        {/* Theme Settings */}
         <div
           style={{
             padding: "16px 20px",
@@ -322,7 +328,7 @@ function App() {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* Main Content Area */}
       <div
         style={{
           flex: 1,
@@ -334,7 +340,6 @@ function App() {
         }}
       >
         {view === "chat" ? (
-          // We pass down the theme object so ChatWindow can match the colors dynamically
           <ChatWindow
             key={sessionId}
             onNewMessage={fetchHistory}
