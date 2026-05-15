@@ -145,6 +145,22 @@ HUGGINGFACE_API_KEY=your_huggingface_api_key
 REDIS_URL=your_redis_connection_string
 ```
 
+⚠️ Local Development Note
+
+If you are running the project locally, update the backend API URL inside:
+
+frontend/src/Api.js
+
+Change the request base URL from the deployed backend URL to:
+
+http://localhost:5173
+
+Example:
+
+const API = axios.create({ baseURL: 'http://localhost:5173/api' });
+
+This ensures the frontend connects to your local backend server instead of the deployed production server.
+
 ### Start Backend Server
 
 ```bash
