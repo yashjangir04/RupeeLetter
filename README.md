@@ -151,9 +151,46 @@ REDIS_URL=your_redis_connection_string
 npm start
 ```
 
+Backend will start at:
+
+```bash
+http://localhost:5000
+```
+
 ---
 
-## 3️⃣ Frontend Setup
+## 3️⃣ Ingest Financial Data
+
+Before using the chatbot, ingest the financial news/articles into the vector database.
+
+Make a request to:
+
+```bash
+POST http://localhost:5000/api/ingest
+```
+
+You can use:
+- Postman
+- Thunder Client
+- cURL
+
+### Example using cURL
+
+```bash
+curl -X POST http://localhost:5000/api/ingest
+```
+
+This step:
+- Fetches/stores financial articles
+- Generates embeddings
+- Populates MongoDB vector storage
+- Prepares Redis semantic cache
+
+⚠️ This step is required before asking financial questions.
+
+---
+
+## 4️⃣ Frontend Setup
 
 Open a new terminal:
 
@@ -165,13 +202,13 @@ npm install
 ### Start Frontend
 
 ```bash
-npm start
+npm run dev
 ```
 
-The app will run at:
+Frontend will run at:
 
 ```bash
-http://localhost:3000
+http://localhost:5173
 ```
 
 ---
