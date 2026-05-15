@@ -2,6 +2,7 @@ const { ChatGroq } = require("@langchain/groq");
 const { HfInference } = require("@huggingface/inference");
 const ChatModel = require("../models/Chat.js");
 const Article = require("../models/Article.js");
+const redisClient = require("../redisClient");
 
 const cosineSimilarity = (vecA, vecB) => {
     let dotProduct = 0;
@@ -23,6 +24,34 @@ const chatWithNews = async (req, res) => {
             return res.status(400).json({ success: false, error: "message is required" });
         }
 
+        const activeSessionId = sessionId || Date.now().toString();
+        const cacheKey = `chat:${message.toLowerCase().trim()}`;
+
+        // 1. Check Redis Cache
+        const cachedData = await redisClient.get(cacheKey);
+
+        if (cachedData) {
+            const { answer, sources } = JSON.parse(cachedData);
+
+            const newChat = new ChatModel({
+                sessionId: activeSessionId,
+                userMessage: message,
+                aiResponse: answer,
+                sources: sources
+            });
+            await newChat.save();
+
+            await redisClient.del("chat_history:sidebar");
+            await redisClient.del(`chat_session:${activeSessionId}`);
+
+            return res.status(200).json({
+                success: true,
+                answer,
+                sources
+            });
+        }
+
+        // 2. Cache Miss: Process via LLM
         const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
         const queryVector = await hf.featureExtraction({
             model: "sentence-transformers/all-MiniLM-L6-v2",
@@ -62,18 +91,22 @@ const chatWithNews = async (req, res) => {
             ---
 
             USER QUESTION: ${message}
-        ` ;
+        `;
 
         const result = await llm.invoke(prompt);
         const responseText = result.content;
 
         const newChat = new ChatModel({
-            sessionId: sessionId || Date.now().toString(),
+            sessionId: activeSessionId,
             userMessage: message,
             aiResponse: responseText,
             sources: sources
         });
         await newChat.save();
+
+        // 3. Save to Redis Cache (Expires in 24 hours / 86400 seconds)
+        const cachePayload = JSON.stringify({ answer: responseText, sources });
+        await redisClient.setEx(cacheKey, 86400, cachePayload);
 
         res.status(200).json({
             success: true,
@@ -82,7 +115,7 @@ const chatWithNews = async (req, res) => {
         });
     }
     catch (err) {
-        console.log(err);
+        console.error(err);
         res.status(500).json({ success: false, error: err.message });
     }
 };
