@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API = axios.create({ baseURL: 'http://localhost:5000/api' });
+const API = axios.create({ baseURL: 'https://rupeeletter.onrender.com/api' });
 
 export const ingestData = () => API.post('/ingest');
 export const sendMessage = (message, sessionId) => API.post('/chat', { message, sessionId });
