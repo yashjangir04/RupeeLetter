@@ -48,7 +48,7 @@ const getSessionChats = async (req, res) => {
         const chats = await Chat.find({ sessionId }).sort({ createdAt: 1 });
 
         // Save to Cache
-        await redisClient.setEx(cacheKey, 3600, JSON.stringify(chats));
+        await redisClient.setEx(cacheKey, 300, JSON.stringify(chats));
 
         res.status(200).json({ success: true, data: chats });
     } catch (err) {

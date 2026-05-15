@@ -20,46 +20,59 @@ const cosineSimilarity = (vecA, vecB) => {
 const chatWithNews = async (req, res) => {
     try {
         const { message, sessionId } = req.body;
-        if (!message) {
-            return res.status(400).json({ success: false, error: "message is required" });
-        }
+        if (!message) return res.status(400).json({ success: false, error: "message is required" });
 
         const activeSessionId = sessionId || Date.now().toString();
-        const cacheKey = `chat:${message.toLowerCase().trim()}`;
-
-        // 1. Check Redis Cache
-        const cachedData = await redisClient.get(cacheKey);
-
-        if (cachedData) {
-            const { answer, sources } = JSON.parse(cachedData);
-
-            const newChat = new ChatModel({
-                sessionId: activeSessionId,
-                userMessage: message,
-                aiResponse: answer,
-                sources: sources
-            });
-            await newChat.save();
-
-            await redisClient.del("chat_history:sidebar");
-            await redisClient.del(`chat_session:${activeSessionId}`);
-
-            return res.status(200).json({
-                success: true,
-                answer,
-                sources
-            });
-        }
-
-        // 2. Cache Miss: Process via LLM
         const hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+
+        // STEP 1: Turn the user's question into a mathematical Vector IMMEDIATELY
         const queryVector = await hf.featureExtraction({
             model: "sentence-transformers/all-MiniLM-L6-v2",
             inputs: message
         });
 
-        const allArticles = await Article.find({});
+        // STEP 2: Pull our "Semantic Cache" array from Redis
+        const cachedData = await redisClient.get("semantic_cache");
+        let semanticCache = cachedData ? JSON.parse(cachedData) : [];
 
+        // STEP 3: Loop through past questions and find the closest mathematical match
+        let highestScore = 0;
+        let bestMatch = null;
+
+        for (const cachedItem of semanticCache) {
+            const score = cosineSimilarity(queryVector, cachedItem.vector);
+            if (score > highestScore) {
+                highestScore = score;
+                bestMatch = cachedItem;
+            }
+        }
+
+        // STEP 4: If the similarity is over 95%, it's practically the same question! Cache Hit!
+        if (highestScore >= 0.85 && bestMatch) {
+            console.log(`Semantic Cache Hit! (Similarity: ${(highestScore * 100).toFixed(2)}%)`);
+            
+            // Save this to the user's history so it shows in the sidebar
+            const newChat = new ChatModel({
+                sessionId: activeSessionId,
+                userMessage: message, // We save their exact wording in history
+                aiResponse: bestMatch.answer,
+                sources: bestMatch.sources
+            });
+            await newChat.save();
+            await redisClient.del("chat_history:sidebar"); // Invalidate sidebar cache
+
+            return res.status(200).json({
+                success: true,
+                answer: bestMatch.answer,
+                sources: bestMatch.sources
+            });
+        }
+
+        console.log("Semantic Cache Miss. Generating new AI response...");
+
+        // CACHE MISS - normal Groq / MongoDB ..
+        
+        const allArticles = await Article.find({});
         const scoredArticles = allArticles.map(article => {
             const score = cosineSimilarity(queryVector, article.embedding);
             return { ...article.toObject(), score };
@@ -103,10 +116,21 @@ const chatWithNews = async (req, res) => {
             sources: sources
         });
         await newChat.save();
+        await redisClient.del("chat_history:sidebar"); // Invalidate sidebar cache
 
-        // 3. Save to Redis Cache (Expires in 24 hours / 86400 seconds)
-        const cachePayload = JSON.stringify({ answer: responseText, sources });
-        await redisClient.setEx(cacheKey, 86400, cachePayload);
+        // STEP 6: Save the NEW Vector and Answer to our Semantic Cache for future users!
+        semanticCache.push({
+            vector: queryVector,
+            answer: responseText,
+            sources: sources
+        });
+
+        // Optional: Keep the cache array from growing infinitely large (e.g., keep the latest 100 questions)
+        if (semanticCache.length > 100) {
+            semanticCache.shift(); // remove the oldest item
+        }
+
+        await redisClient.setEx("semantic_cache", 86400, JSON.stringify(semanticCache)); // Expire in 24 hrs
 
         res.status(200).json({
             success: true,

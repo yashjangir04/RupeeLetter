@@ -8,7 +8,7 @@ function App() {
   const [view, setView] = useState("chat");
   const [history, setHistory] = useState([]);
   const [sessionId, setSessionId] = useState(Date.now());
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -54,6 +54,11 @@ function App() {
           .custom-scrollbar::-webkit-scrollbar-thumb { background: ${theme.border}; border-radius: 10px; transition: background 0.3s ease; }
           .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: ${theme.textMuted}; }
           .custom-scrollbar { scrollbar-width: thin; scrollbar-color: ${theme.border} transparent; }
+
+          @keyframes slideInDown {
+            0% { opacity: 0; transform: translateY(-15px); }
+            100% { opacity: 1; transform: translateY(0); }
+          }
         `}
       </style>
 
@@ -124,7 +129,18 @@ function App() {
               <div 
                 key={item._id} 
                 onClick={() => handleNav("chat", item._id)} 
-                style={{ padding: "10px 12px", fontSize: "13px", color: theme.textMuted, cursor: "pointer", borderRadius: "8px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", transition: "all 0.2s ease" }}
+                style={{ 
+                  padding: "10px 12px", 
+                  fontSize: "13px", 
+                  color: theme.textMuted, 
+                  cursor: "pointer", 
+                  borderRadius: "8px", 
+                  whiteSpace: "nowrap", 
+                  overflow: "hidden", 
+                  textOverflow: "ellipsis", 
+                  transition: "all 0.2s ease",
+                  animation: "slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards" 
+                }}
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.surface; e.currentTarget.style.color = theme.textMain; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = theme.textMuted; }}
               >
