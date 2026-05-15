@@ -45,7 +45,7 @@ function App() {
     : { bgBase: "#F8FAFC", bgSidebar: "#FFFFFF", surface: "#F1F5F9", border: "#E2E8F0", accentRed: "#D90000", textMain: "#0F172A", textMuted: "#64748B" };
 
   return (
-    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: "100vh", backgroundColor: theme.bgBase, color: theme.textMain, fontFamily: "system-ui, sans-serif", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: "100vh", backgroundColor: theme.bgBase, color: theme.textMain, fontFamily: "'Inter', sans-serif", overflow: "hidden" }}>
       
       <style>
         {`
