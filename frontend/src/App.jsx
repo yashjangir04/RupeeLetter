@@ -125,28 +125,46 @@ function App() {
             <History size={12} /> RECENT SESSIONS
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {history.map((item) => (
-              <div 
-                key={item._id} 
-                onClick={() => handleNav("chat", item._id)} 
-                style={{ 
-                  padding: "10px 12px", 
-                  fontSize: "13px", 
-                  color: theme.textMuted, 
-                  cursor: "pointer", 
-                  borderRadius: "8px", 
-                  whiteSpace: "nowrap", 
-                  overflow: "hidden", 
-                  textOverflow: "ellipsis", 
-                  transition: "all 0.2s ease",
-                  animation: "slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards" 
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme.surface; e.currentTarget.style.color = theme.textMain; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = theme.textMuted; }}
-              >
-                {item.userMessage}
-              </div>
-            ))}
+            {history.map((item) => {
+              // 🟢 Check if this item is the currently open session
+              const isActive = view === "chat" && String(item._id) === String(sessionId);
+              
+              return (
+                <div 
+                  key={item._id} 
+                  onClick={() => handleNav("chat", item._id)} 
+                  style={{ 
+                    padding: "10px 12px", 
+                    fontSize: "13px", 
+                    color: isActive ? theme.textMain : theme.textMuted, 
+                    backgroundColor: isActive ? theme.surface : "transparent",
+                    fontWeight: isActive ? "600" : "400",
+                    cursor: "pointer", 
+                    borderRadius: "8px", 
+                    whiteSpace: "nowrap", 
+                    overflow: "hidden", 
+                    textOverflow: "ellipsis", 
+                    transition: "all 0.2s ease",
+                    animation: "slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+                    borderLeft: isActive ? `3px solid ${theme.accentRed}` : "3px solid transparent" // 🔴 Sleek active indicator
+                  }}
+                  onMouseEnter={(e) => { 
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = theme.surface; 
+                      e.currentTarget.style.color = theme.textMain; 
+                    }
+                  }}
+                  onMouseLeave={(e) => { 
+                    if (!isActive) {
+                      e.currentTarget.style.backgroundColor = "transparent"; 
+                      e.currentTarget.style.color = theme.textMuted; 
+                    }
+                  }}
+                >
+                  {item.userMessage}
+                </div>
+              );
+            })}
           </div>
         </div>
 
