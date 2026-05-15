@@ -50,7 +50,7 @@ const chatWithNews = async (req, res) => {
         // STEP 4: If the similarity is over 95%, it's practically the same question! Cache Hit!
         if (highestScore >= 0.85 && bestMatch) {
             console.log(`Semantic Cache Hit! (Similarity: ${(highestScore * 100).toFixed(2)}%)`);
-            
+
             // Save this to the user's history so it shows in the sidebar
             const newChat = new ChatModel({
                 sessionId: activeSessionId,
@@ -71,7 +71,7 @@ const chatWithNews = async (req, res) => {
         console.log("Semantic Cache Miss. Generating new AI response...");
 
         // CACHE MISS - normal Groq / MongoDB ..
-        
+
         const allArticles = await Article.find({});
         const scoredArticles = allArticles.map(article => {
             const score = cosineSimilarity(queryVector, article.embedding);
@@ -91,12 +91,19 @@ const chatWithNews = async (req, res) => {
 
         const llm = new ChatGroq({
             apiKey: process.env.GROQ_API_KEY,
-            model: "llama-3.1-8b-instant"
+            model: "llama-3.1-8b-instant",
+            max_tokens: 350,
+            temperature: 0.2,
         });
 
         const prompt = `
-            System: You are an AI News Assistant. Answer the user's question strictly using ONLY the context provided below.
-            If the answer is not contained in the context, say "I cannot answer this based on the provided news data."
+            System: You are an expert financial AI assistant. 
+            Your goal is to answer the user's question accurately using ONLY the provided CONTEXT.
+            
+            Strict Rules:
+            1. Do not use outside knowledge. If the answer is not in the context, reply EXACTLY with: "I cannot answer this based on the provided news data."
+            2. Get straight to the point. Do not use conversational filler like "Based on the context..." or "Here is the answer...".
+            3. Be concise but thorough.
 
             ---
             CONTEXT:
