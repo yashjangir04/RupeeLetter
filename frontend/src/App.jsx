@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { getHistory } from "./Api";
 import ChatWindow from "./components/ChatWindow";
 import AnalyzeView from "./components/AnalyzeView";
-import { MessageSquare, LayoutDashboard, Plus, History, Sun, Moon, Menu, X } from "lucide-react";
+import { MessageSquare, LayoutDashboard, Plus, History, Sun, Moon, Menu, X, Loader2, AlertCircle } from "lucide-react";
 
 function App() {
   const [view, setView] = useState("chat");
@@ -11,6 +12,40 @@ function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const [isServerAwake, setIsServerAwake] = useState(false);
+  const [bootError, setBootError] = useState(false);
+
+  const theme = isDarkMode 
+    ? { bgBase: "#0B1120", bgSidebar: "#0F172A", surface: "#1E293B", border: "#334155", accentRed: "#E60000", textMain: "#F8FAFC", textMuted: "#94A3B8" }
+    : { bgBase: "#F8FAFC", bgSidebar: "#FFFFFF", surface: "#F1F5F9", border: "#E2E8F0", accentRed: "#D90000", textMain: "#0F172A", textMuted: "#64748B" };
+
+  useEffect(() => {
+    let attempts = 0;
+    const maxAttempts = 20; // Give up after 60 seconds (20 attempts * 3s)
+    let wakeInterval;
+
+    const pingServer = async () => {
+      try {
+        const res = await axios.get("https://rupeeletter.onrender.com/health"); 
+        if (res.status === 200) {
+          setIsServerAwake(true);
+          clearInterval(wakeInterval);
+        }
+      } catch (err) {
+        attempts++;
+        if (attempts >= maxAttempts) {
+          setBootError(true);
+          clearInterval(wakeInterval);
+        }
+      }
+    };
+
+    pingServer();
+    wakeInterval = setInterval(pingServer, 3000);
+
+    return () => clearInterval(wakeInterval);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {
@@ -30,9 +65,12 @@ function App() {
     }
   };
 
+  // only fetch history if the server is officially awake
   useEffect(() => {
-    fetchHistory();
-  }, []);
+    if (isServerAwake) {
+      fetchHistory();
+    }
+  }, [isServerAwake]);
 
   const handleNav = (newView, newSessionId = null) => {
     if (newSessionId) setSessionId(newSessionId);
@@ -40,10 +78,40 @@ function App() {
     setIsSidebarOpen(false);
   };
 
-  const theme = isDarkMode 
-    ? { bgBase: "#0B1120", bgSidebar: "#0F172A", surface: "#1E293B", border: "#334155", accentRed: "#E60000", textMain: "#F8FAFC", textMuted: "#94A3B8" }
-    : { bgBase: "#F8FAFC", bgSidebar: "#FFFFFF", surface: "#F1F5F9", border: "#E2E8F0", accentRed: "#D90000", textMain: "#0F172A", textMuted: "#64748B" };
+  // boot error screen
+  if (bootError) {
+    return (
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: theme.bgBase, color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
+        <AlertCircle size={48} color={theme.accentRed} style={{ marginBottom: "20px" }} />
+        <h2 style={{ fontSize: "24px", fontWeight: "800", marginBottom: "10px" }}>Servers are sleeping</h2>
+        <p style={{ color: theme.textMuted, maxWidth: "400px", textAlign: "center", lineHeight: "1.5" }}>We couldn't wake up the backend servers. Please check your connection or try refreshing the page.</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          style={{ marginTop: "24px", padding: "10px 20px", backgroundColor: theme.surface, color: theme.textMain, border: `1px solid ${theme.border}`, borderRadius: "8px", cursor: "pointer", fontWeight: "600", transition: "all 0.2s" }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = theme.accentRed}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = theme.border}
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
 
+  // waking Up loading screen
+  if (!isServerAwake) {
+    return (
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: theme.bgBase, color: theme.textMain, fontFamily: "'Inter', sans-serif" }}>
+        <img src={isDarkMode ? "/logo_dark.png" : "/logo.jpg"} alt="Logo" style={{ height: "64px", marginBottom: "30px", animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite", borderRadius: "12px" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <Loader2 size={20} className="animate-spin" color={theme.accentRed} />
+          <span style={{ fontWeight: "600", color: theme.textMuted, letterSpacing: "1px", fontSize: "14px" }}>WAKING UP SECURE SERVERS...</span>
+        </div>
+        <style>{`@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .7; transform: scale(0.95); } }`}</style>
+      </div>
+    );
+  }
+
+  // existing main app return statement
   return (
     <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", height: "100vh", backgroundColor: theme.bgBase, color: theme.textMain, fontFamily: "'Inter', sans-serif", overflow: "hidden" }}>
       
@@ -126,7 +194,6 @@ function App() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
             {history.map((item) => {
-              // 🟢 Check if this item is the currently open session
               const isActive = view === "chat" && String(item._id) === String(sessionId);
               
               return (
@@ -146,7 +213,7 @@ function App() {
                     textOverflow: "ellipsis", 
                     transition: "all 0.2s ease",
                     animation: "slideInDown 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards",
-                    borderLeft: isActive ? `3px solid ${theme.accentRed}` : "3px solid transparent" // 🔴 Sleek active indicator
+                    borderLeft: isActive ? `3px solid ${theme.accentRed}` : "3px solid transparent"
                   }}
                   onMouseEnter={(e) => { 
                     if (!isActive) {
