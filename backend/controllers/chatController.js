@@ -47,7 +47,7 @@ const chatWithNews = async (req, res) => {
             }
         }
 
-        // STEP 4: If the similarity is over 95%, it's practically the same question! Cache Hit!
+        // STEP 4: If the similarity is over 85%, it's practically the same question! Cache Hit!
         if (highestScore >= 0.85 && bestMatch) {
             console.log(`Semantic Cache Hit! (Similarity: ${(highestScore * 100).toFixed(2)}%)`);
 

@@ -34,7 +34,7 @@ const getSessionChats = async (req, res) => {
     try {
         const { sessionId } = req.params;
         
-        // 👉 NO CACHE: Always fetch the exact, up-to-date messages from MongoDB
+        // NO CACHE: Always fetch the exact, up-to-date messages from MongoDB
         const chats = await Chat.find({ sessionId }).sort({ createdAt: 1 });
         
         res.status(200).json({ success: true, data: chats });
